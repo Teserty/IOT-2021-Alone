@@ -27,9 +27,9 @@ def readLight(addr=DEVICE):
   return convertToNumber(data)
 
 
-def get_light():
+def get_light(time):
     value= readLight()
-    x = {"sensorID":"0", "typeSensor":"light", "typeValue":"float", "value": value}
+    x = {"sensorID":"0", "typeSensor":"light", "typeValue":"float", "value": value, "time": str(time)}
     return x
 
 
@@ -59,7 +59,7 @@ def set_pomp():
     return 0
 
 
-sensors_per = [get_light()]#, get_humidity()]
+#sensors_per = [get_light()]#, get_humidity()]
 sensors_req = [get_light_status(), get_pomp_status()]
 controllers = [set_light(), set_pomp()]
 app = Flask(__name__)
@@ -67,8 +67,12 @@ app = Flask(__name__)
 
 @app.route('/', methods=['POST'])
 def hello_world():
-    return json.dumps(sensors_per)
+    import datetime
+    return json.dumps([get_light(datetime.datetime.now())])
 
 
 def exec():
     app.run(port=5000)
+
+
+exec()
