@@ -70,8 +70,36 @@ def hello_world():
     import datetime
     return json.dumps([get_light(datetime.datetime.now())])
 
-
+def signals():
+    from gpiozero import LED
+    red = LED(16)
+    green = LED(20)
+    blue = LED(21)
+    current = red
+    import time
+    while True:
+        val = readLight()
+        if val >20:
+            if current is not blue:
+                current.off()
+                current = blue
+                current.on()
+        elif val > 60:
+            if current is not green:
+                current.off()
+                current = green
+                current.on()
+        else:
+            if current is not red:
+                current.off()
+                current = red
+                current.on()
+        time.sleep(1)
+        
 def exec():
+    import threading
+    thread1 = threading.Thread(target=signals)
+    thread1.start()
     app.run(port=5000)
 
 
