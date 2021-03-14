@@ -62,27 +62,16 @@ def set_pomp():
     return 0
 
 
-sensors_per = [get_light(), get_humidity()]
+sensors_per = [get_light()]#, get_humidity()]
 sensors_req = [get_light_status(), get_pomp_status()]
 controllers = [set_light(), set_pomp()]
-
-
-
-def publish():
-    while True:
-        time.sleep(5)
-        requests.post("http://localhost:5001/", json.dumps(sensors_per))
-
-
 app = Flask(__name__)
 
 
-@app.route('/')
+@app.route('/', methods=['POST'])
 def hello_world():
-    publish()
+    return json.dumps(sensors_per)
 
 
 def exec():
-    publisher = threading.Thread(target=publish)
-    publisher.start()
     app.run(port=5000)
