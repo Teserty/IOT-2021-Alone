@@ -52,10 +52,14 @@ def send_later():
         if len(sensors_per) > 0:
             if 'action' in sensors_per[0].keys():
                 if sensors_per[0].get('action') == "alert":
-                    return "Тревога"
+                    print("Alert")
+                    bot.send_message(id, "Тревога: низкий уровень освещенности")
             else:
                 print(sensors_per)
-                plt.plot(timed_data, value_data)
+                print(timed_data)
+                print(value_data)
+                plt.plot(timed_data, value_data, c = 'red')
+                plt.gcf().autofmt_xdate()
                 plt.savefig('status.png')
                 img = open('status.png', 'rb')
                 bot.send_photo(id, img, caption='status')
@@ -86,9 +90,11 @@ def subscribe(client: mqtt_client):
         data = literal_eval(msg.payload.decode('utf8'))
         global sensors_per
         sensors_per = data
-        timed_data.append(datetime.datetime.now())
-        value_data.append(sensors_per[0].get('value'))
-        #print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
+        if 'action' not in sensors_per[0].keys():
+            date_time_obj = datetime.datetime.strptime(sensors_per[0].get('time'), '%Y-%m-%d %H:%M:%S.%f')
+            timed_data.append(date_time_obj)
+            value_data.append(sensors_per[0].get('value'))
+            print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
         #print(data)
     client.subscribe("vmk/team_4/r")
     client.on_message = on_message
