@@ -1,7 +1,7 @@
 import telebot
-import time
+import time as tm
 import json
-
+import datetime
 from paho.mqtt import client as mqtt_client
 
 broker = 'broker.hivemq.com'
@@ -13,6 +13,10 @@ worker_id = f'python-mqtt-1'
 # username = 'emqx'
 # password = 'public'
 
+from PIL import Image
+import matplotlib.pyplot as plt
+timed_data = []
+value_data = []
 
 import telebot
 bot = telebot.TeleBot('1665454110:AAFPhm8SLBC8zs27LP9ApllC_p4E5bGFa7c')
@@ -21,6 +25,7 @@ bot = telebot.TeleBot('1665454110:AAFPhm8SLBC8zs27LP9ApllC_p4E5bGFa7c')
 time = "1 минуту"
 command = "status"
 mybots = [403938354]
+times = []
 sensors_per = []
 subscriber = mqtt_client.Client('2')
 publisher = mqtt_client.Client('3')
@@ -44,7 +49,24 @@ def send_status(message):
 def send_later():
     for id in mybots:
         print(sensors_per)
-        bot.send_message(id, text=status_text())
+        if len(sensors_per) > 0:
+            if 'action' in sensors_per[0].keys():
+                if sensors_per[0].get('action') == "alert":
+                    return "Тревога"
+            else:
+                print(sensors_per)
+                plt.plot(timed_data, value_data)
+                plt.savefig('status.png')
+                img = open('status.png', 'rb')
+                bot.send_photo(id, img, caption='status')
+        #bot.send_message(id, text=status_text())
+
+
+def later_loop():
+    tm.sleep(120)
+    while True:
+        send_later()
+        tm.sleep(60)
 
 
 def status_text():
@@ -64,9 +86,10 @@ def subscribe(client: mqtt_client):
         data = literal_eval(msg.payload.decode('utf8'))
         global sensors_per
         sensors_per = data
+        timed_data.append(datetime.datetime.now())
+        value_data.append(sensors_per[0].get('value'))
         #print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
         #print(data)
-        send_later()
     client.subscribe("vmk/team_4/r")
     client.on_message = on_message
 
@@ -74,6 +97,8 @@ def subscribe(client: mqtt_client):
 def publish(client):
     message = {"Request": "Data"}
     client.publish("vmk/team_4/c", json.dumps(message))
+    tm.sleep(1)
+    send_later()
 
 
 def run():
@@ -82,9 +107,9 @@ def run():
     subscribe(subscriber)
     publisher.connect(broker, port)
     publisher.loop_start()
-    thread1 = threading.Thread(target=publish, args=[publisher])
+    thread1 = threading.Thread(target=run_bot)
     thread1.start()
-    thread2 = threading.Thread(target=run_bot)
+    thread2 = threading.Thread(target=later_loop)
     thread2.start()
     subscribe(subscriber)
     subscriber.loop_forever()

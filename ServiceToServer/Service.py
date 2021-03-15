@@ -12,24 +12,32 @@ subscriber = mqtt_client.Client('0')
 publisher = mqtt_client.Client('1')
 
 
-def publish(client):
+def publish():
     val = requests.post("http://localhost:5000/")
     global sensors_per
-    sensors_per = val.json()
-    print("Sended " + json.dumps(sensors_per))
-    result = client.publish("vmk/team_4/r", json.dumps(sensors_per))
+    return val.json()
 
 
 def publish_loop(client):
     while True:
-        publish(client)
-        time.sleep(60)
+        time.sleep(10)
+        client.publish("vmk/team_4/r", json.dumps(publish()))
+
+
+def alert_loop():
+    while True:
+        val = publish()
+        if val[0].get('value') < 100:
+            publisher.publish("vmk/team_4/r", json.dumps([{"action": 'alert'}]))
+            publisher.publish("vmk/team_4/r", json.dumps(publish()))
+            time.sleep(20)
+        time.sleep(2)
 
 
 def subscribe(client):
     def on_message(client, userdata, msg):
-        print("OK")
-        publish(publisher)
+        print(msg)
+        publisher.publish("vmk/team_4/r", json.dumps(publish()))
     client.subscribe("vmk/team_4/c")
     client.on_message = on_message
 
@@ -41,6 +49,8 @@ def run():
     subscribe(subscriber)
     thread1 = threading.Thread(target=subscriber.loop_forever)
     thread1.start()
+    thread2 = threading.Thread(target=alert_loop)
+    thread2.start()
     publisher.loop_start()
     publish_loop(publisher)
 
